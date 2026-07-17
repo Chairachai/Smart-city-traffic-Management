@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Traffic Map - Bengaluru</title>
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <style>
+        body {
+            margin: 0;
+            background: #f5f5f5;
+            font-family: "Segoe UI", sans-serif;
+        }
+
+        header {
+            background: #1e3c72;
+            background: linear-gradient(to right, #1e3c72, #2a5298);
+            color: white;
+            padding: 20px;
+            font-size: 26px;
+            font-weight: bold;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        #map {
+            height: 85vh;
+            width: 100%;
+        }
+
+        /* Side Control Panel */
+        .control-box {
+            position: absolute;
+            top: 100px;
+            left: 20px;
+            background: white;
+            padding: 15px;
+            width: 260px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 9999;
+        }
+
+        .control-box h3 {
+            margin: 0 0 10px;
+            font-size: 18px;
+            color: #1e3c72;
+            text-align: center;
+        }
+
+        .control-box button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            background: #1e3c72;
+            color: white;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .control-box button:hover {
+            background: #2a5298;
+        }
+
+        .search {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+        }
+
+        /* Traffic Legend */
+        .legend {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .circle {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        /* Custom zoom control styling (right side) */
+        .leaflet-right .leaflet-control-zoom {
+            margin-right: 20px;
+            margin-bottom: 40px;
+        }
+
+        .leaflet-control-zoom-in, 
+        .leaflet-control-zoom-out {
+            background: #1e3c72 !important;
+            color: white !important;
+            border-radius: 6px !important;
+            border: none !important;
+        }
+
+        .leaflet-control-zoom-in:hover,
+        .leaflet-control-zoom-out:hover {
+            background: #2a5298 !important;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<header>
+    🚦 Smart Traffic Monitoring System – Bengaluru
+</header>
+
+<div class="control-box">
+    <h3>Traffic Controls</h3>
+
+    <input type="text" placeholder="Search location..." class="search" onkeyup="searchLocation(this.value)">
+
+    <button onclick="loadTraffic()">🔄 Refresh Traffic</button>
+
+    <div class="legend">
+        <p><span class="circle" style="background: #4CAF50;"></span>Low Traffic</p>
+        <p><span class="circle" style="background: #FFC107;"></span>Moderate Traffic</p>
+        <p><span class="circle" style="background: #F44336;"></span>High Traffic</p>
+    </div>
+</div>
+
+<div id="map"></div>
+
+<script>
+    // Map initialization
+    var map = L.map('map', {
+        zoomControl: false   // Disable default control (left side)
+    }).setView([12.9716, 77.5946], 12);
+
+    // Add custom zoom control on RIGHT SIDE
+    L.control.zoom({
+        position: 'bottomright'  // Move to right bottom
+    }).addTo(map);
+
+    // Map tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19
+    }).addTo(map);
+
+    let markers = [];
+
+    let locations = [
+        { name: "Majestic", lat: 12.9763, lon: 77.5722 },
+        { name: "MG Road", lat: 12.9758, lon: 77.6050 },
+        { name: "Electronic City", lat: 12.8390, lon: 77.6770 },
+        { name: "Silk Board", lat: 12.9177, lon: 77.6244 },
+        { name: "KR Puram", lat: 13.0070, lon: 77.6910 },
+        { name: "Hebbal", lat: 13.0358, lon: 77.5970 },
+        { name: "Whitefield", lat: 12.9698, lon: 77.7500 }
+    ];
+
+    function trafficColor(level) {
+        if (level === "Low") return "#4CAF50";
+        if (level === "Moderate") return "#FFC107";
+        return "#F44336"; // High traffic
+    }
+
+    function loadTraffic() {
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
+
+        locations.forEach(loc => {
+            let traffic = ["Low", "Moderate", "High"][Math.floor(Math.random() * 3)];
+
+            let marker = L.circleMarker([loc.lat, loc.lon], {
+                radius: 12,
+                color: trafficColor(traffic),
+                fillColor: trafficColor(traffic),
+                fillOpacity: 0.8
+            })
+            .addTo(map)
+            .bindPopup(`
+                <b>${loc.name}</b><br>
+                🚦 Traffic: <b>${traffic}</b><br>
+                <small>Updated: ${new Date().toLocaleTimeString()}</small>
+            `);  
+            markers.push(marker);
+        });
+    }
+
+    // 🔄 Auto refresh traffic every 70 sec
+    setInterval(loadTraffic, 5000);
+
+    // 🔍 Search function
+    function searchLocation(text) {
+        text = text.toLowerCase();
+
+        locations.forEach(loc => {
+            if (loc.name.toLowerCase().includes(text)) {
+                map.setView([loc.lat, loc.lon], 14);
+            }
+        });
+    }
+
+    loadTraffic();
+</script>
+
+</body>
+</html>
